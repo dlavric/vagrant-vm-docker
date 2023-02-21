@@ -1,8 +1,35 @@
-# vagrant-vm-docker
+## vagrant-vm-docker
 This is a repository that creates a VM with Vagrant to test Docker
 
-# Purpose
+## Purpose
 Testing the exercises from the [Docker Up & running book](https://www.oreilly.com/library/view/docker-up/9781492036722/)
+
+## Pre-requisites
+
+1. Install [Vagrant](https://www.vagrantup.com/docs/installation)
+
+2. Install [VirtualBox](https://www.virtualbox.org/)
+
+## Clone the Repository
+
+```shell
+git clone git@github.com:dlavric/vagrant-vm-docker.git
+cd vagrant-vm-docker
+```
+
+## How to use this repository
+
+1. Start Vagrant:
+
+```shell
+vagrant up
+```
+
+2. Connect to the virtual machine:
+
+```shell
+vagrant ssh
+```
 
 # Install Docker - Chapter 3, Page 33
 - Ensure there is no older Docker running
@@ -144,4 +171,53 @@ WARNING: No swap limit support
 docker pull ubuntu:latest
 ```
 
-- How to inspect Docker containers
+- Start a Docker container and inspect it
+```shell
+docker run -d -t ubuntu /bin/bash
+```
+
+- List all the containers that are running in Docker
+```shell
+docker ps
+
+CONTAINER ID   IMAGE     COMMAND       CREATED              STATUS              PORTS     NAMES
+01420aeb5a3e   ubuntu    "/bin/bash"   About a minute ago   Up About a minute             charming_tharp
+```
+
+- We can inspect the container by specifying the `CONTAINER ID` or the `NAME` from the previous output
+```shell
+docker inspect charming_tharp
+```
+
+- Get inside the container using the `CONTAINER ID`
+```shell
+docker exec -i -t 01420aeb5a3e /bin/bash
+
+root@01420aeb5a3e:/# ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:33 pts/0    00:00:00 /bin/bash
+root         8     0  0 15:30 pts/1    00:00:00 /bin/bash
+root        15     8  0 15:30 pts/1    00:00:00 ps -ef
+```
+
+- Check the logs
+```shell
+docker logs -f 01420aeb5a3e
+```
+*NOTE*: Logs can be checked from a specific period with the `--since` option or a specific word with `--tail` followed by the keyword
+
+- Start up a container where we can read `stats`
+```shell
+docker run -d ubuntu:latest sleep 1000
+45579deea9d465e3923e61b16670cb3681d752288398f7c28c517b183d33bb43
+```
+
+- Get the ongoing stream of statistics from the container
+NOTE: I installed `jq` (`sudo apt-get install jq`) on my VM so I can see the stats in a JSON format
+```shell
+curl --unix-socket /var/run/docker.sock \
+http://v1/containers/45579deea9d465e3923e61b16670cb3681d752288398f7c28c517b183d33bb43/stats | jq '.'
+```
+
+# Chapter 7 - Debugging Containers
+
