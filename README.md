@@ -221,3 +221,39 @@ http://v1/containers/45579deea9d465e3923e61b16670cb3681d752288398f7c28c517b183d3
 
 # Chapter 7 - Debugging Containers
 
+- Check what processes are running inside of the container:
+```shell
+docker top <container-id>
+```
+
+- Get a full tree of the PIDs of Docker:
+```shell
+pstree -p `pidof dockerd`
+```
+
+
+# Chapter 8 - Docker Compose
+
+Docker Compose is a tool that is useful to create a stack of containers, helps to develoeprs to spin-un applications quickly.
+
+Instead of using a shell script to create everything, Docker Compose uses a `yaml` configuration file to replace that.
+
+- Check the configuration, an error will be prompted if the configuration is not good:
+```shell
+docker-compose config
+```
+
+- Build containers:
+```shell
+docker-compose build
+```
+
+- Start a web service with Docker:
+```shell
+docker-compose up -d
+```
+
+- Check the logs of the docker compose:
+```shell
+docker-compose logs
+```
