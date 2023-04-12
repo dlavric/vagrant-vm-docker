@@ -257,3 +257,27 @@ docker-compose up -d
 ```shell
 docker-compose logs
 ```
+
+# Chapter 9 - The path to production containers
+
+Getting your applications to production on Docker:
+1. Locally build and test a Docker image on your development box.
+2. Build your official image for testing and deployment, usually from a CI or build
+system.
+3. Push the image to a registry.
+4. Deploy your Docker image to your server, then configure and start the container.
+
+As your workflow evolves, you will eventually collapse all of those steps into a single
+fluid workflow:
+
+1. Orchestrate the deployment of images and creation of containers on production
+servers.
+
+But there is a lot more to the story than that. At the most basic level, a production
+story must encompass three things:
+• It must be a repeatable process. Each time you invoke it, it needs to do the same
+thing.
+• It needs to handle configuration for you. You must be able to define your application’s
+configuration in a particular environment and then guarantee that it will
+ship that configuration on each deployment.
+• It must deliver an executable artifact that can be started.
