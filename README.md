@@ -281,3 +281,167 @@ thing.
 configuration in a particular environment and then guarantee that it will
 ship that configuration on each deployment.
 • It must deliver an executable artifact that can be started.
+
+# Chapter 10 - Docker at scale
+
+### Centurion
+
+Centurion is an easy first step in moving from traditional deployments to a
+Docker workflow and is a great option for people who aren’t ready for, or simply
+don’t need, the features of Swarm, Kubernetes, or Mesos.
+
+Centurion does not do much more than manage your container deployment in a reliable manner, 
+and this makes it very easy to get started with. It assumes that a load balancer sits in 
+front of your application instances.
+
+- Check if you have ruby installed:
+```shell
+ruby -v
+```
+
+- Install Ruby then check the version:
+```shell
+sudo apt-get install ruby
+
+vagrant@dockerserver:~$ ruby -v
+ruby 2.5.1p57 (2018-03-29 revision 63029) [x86_64-linux-gnu]
+```
+
+- Once you have Ruby running, install Centurion with the Ruby package manager:
+```shell
+sudo gem install net-ssh -v 6.1.0
+sudo apt-get install ruby-dev
+sudo gem install centurion
+
+Done installing documentation for bcrypt_pbkdf, ffi, rbnacl, rbnacl-libsodium, logger-colors, excon, trollop, centurion after 9 seconds
+8 gems installed
+```
+
+- Invoke Centurion to make sure it is avaialble:
+```shell
+centurion --help
+
+W, [2023-04-13T10:01:17.996696 #20058]  WARN -- : [DEPRECATION] The trollop gem has been renamed to optimist and will no longer be supported. Please switch to optimist as soon as possible.
+Options:
+  -p, --project=<s>          project (blog, forums...)
+  -e, --environment=<s>      environment (production, staging...)
+  -a, --action=<s>           action (deploy, list...) (default: list)
+  -i, --image=<s>            image (yourco/project...)
+  -t, --tag=<s>              tag (latest...)
+  -h, --hosts=<s>            hosts, comma separated
+  -d, --docker-path=<s>      path to docker executable (default: docker)
+  -n, --no-pull              Skip the pull_image step
+  --registry-user=<s>        user for registry auth
+  --registry-password=<s>    password for registry auth
+  -o, --override-env=<s>     override environment variables, comma separated
+  -l, --help                 Show this message
+```
+
+- Deploy the public helloworld container and create directories to save the configuration:
+```shell
+cd /tmp
+mkdir helloworld
+cd helloworld
+sudo gem install bundle
+sudo gem install bundler -v 2.3.26
+
+centurionize -p helloworld
+
+Writing new Gemfile to /tmp/helloworld/Gemfile
+Adding Centurion to the Gemfile
+
+
+Remember to run `bundle install` before running Centurion
+
+Done!
+```
+
+- Open the configuration file automatically generated in `config/centurion/helloworld.rake`:
+```shell
+cat config/centurion/helloworld.rake
+
+namespace :environment do
+  task :common do
+    set :image, 'helloworld'
+    # Point this to an appropriate health check endpoint for rolling deploys (defaults to '/')
+    # set :status_endpoint, '/status/check'
+     # Example on how to change docker registry to Dogestry.
+    # This requires:
+    # - aws_access_key_id
+    # - aws_secret_key
+    # - s3_bucket
+    #
+    # And optionally:
+    # - s3_region (default to us-east-1)
+    #
+    # registry :dogestry
+    # set :aws_access_key_id, 'abc123'
+    # set :aws_secret_key, 'xyz'
+    # set :s3_bucket, 'bucket-for-docker-images'
+  end
+   desc 'Staging environment'
+  task :staging => :common do
+    set_current_environment(:staging)
+    # env_vars YOUR_ENV: 'staging'
+    # host_port 10234, container_port: 9292
+    # host 'docker-server-staging-1.example.com'
+    # host 'docker-server-staging-2.example.com'
+     # You can assign different docker daemon port. Example:
+    # host 'docker-server-staging-3.example.com:4243'
+  end
+   desc 'Production environment'
+  task :production => :common do
+    set_current_environment(:production)
+    # env_vars YOUR_ENV: 'production'
+    # host_port 23235, container_port: 9293
+    # host 'docker-server-prod-1.example.com'
+    # host 'docker-server-prod-2.example.com'
+    # host_volume '/mnt/volume1', container_volume: '/mnt/volume1'
+  end
+end
+```
+
+- Modify the file `config/centurion/helloworld.rake` with the following content:
+```
+namespace :environment do
+desc 'Development environment'
+task :development do
+set_current_environment(:development)
+# Add on the line after 'set_current_environment(:development)'
+ssh_user = ENV['USER']
+puts "[Info] Will SSH using: #{ssh_user}"
+set :ssh, true
+set :ssh_user, ssh_user
+set :ssh_log_level, Logger::WARN
+set :image, 'adejonge/helloworld'
+env_vars MY_ENV_VAR: 'something important'
+host_port 8080, container_port: 8080
+host '192.168.2.10'
+host '192.168.2.25'
+end
+end
+```
+
+- You’re now ready to deploy this to your development environment:
+```shell
+centurion -p helloworld -e development -a rolling_deploy
+
+** Execute deploy:get_image
+** Invoke deploy:pull_image (first_time)
+** Execute deploy:pull_image
+I, [2023-04-13T12:39:12.255289 #20217]  INFO -- : Fetching image adejonge/helloworld:latest IN PARALLEL
+
+I, [2023-04-13T12:39:12.256039 #20217]  INFO -- : Using CLI to pull
+I, [2023-04-13T12:39:12.257097 #20217]  INFO -- : Using CLI to pull
+```
+
+### Docker Swarm Mode
+
+After building the container runtime in the form of the Docker engine, the engineers
+at Docker turned to the problems of orchestrating a fleet of individual Docker hosts
+and effectively packing those hosts full of containers. The first tool that evolved from
+this work was called Docker Swarm.
+
+### Amazon ECS and Fargate
+
+
