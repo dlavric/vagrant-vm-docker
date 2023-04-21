@@ -442,6 +442,139 @@ at Docker turned to the problems of orchestrating a fleet of individual Docker h
 and effectively packing those hosts full of containers. The first tool that evolved from
 this work was called Docker Swarm.
 
+The Docker Swarm mode lets you build your own Docker cluster for deployment.
+
+- Use my server as a Swarm Manager:
+```shell
+sudo docker swarm init --advertise-addr 192.168.57.151
+
+Swarm initialized: current node (6q488hpnkeezttptcxfne82l2) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-4on43snjhexap37fm83kikhfeyic6usuhmmsr0usgglk9ps4ka-7gg71vc41e74w71dcz0q4iadt 192.168.57.151:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+```
+
+- Save the token previously provided:
+```shell
+SWMTKN-1-4on43snjhexap37fm83kikhfeyic6usuhmmsr0usgglk9ps4ka-7gg71vc41e74w71dcz0q4iadt
+```
+
+- If the token is lost, it can still be retrieved by the following command:
+```shell
+sudo docker swarm join-token --quiet worker
+```
+
+- Inspect my progress by running my local docker client pointed at the 
+new manager node’s IP address:
+```shell
+docker -H 192.168.57.151 info
+```
+
+- If there are issues check the errors with and check the errors:
+```shell 
+systemctl status docker.service
+```
+
+- Restart Docker:
+```shell
+sudo systemctl restart docker
+```
+
+- List the nodes from the cluster:
+```shell
+docker -H 192.168.57.151  node ls
+```
+
+By default Swarm will prioritize ensuring that you have the number of instances 
+that you requested over spreading individual containers across hosts when possible. 
+If you don’t have enough nodes,you will get multiple copies on each node. In a real-world scenario, 
+you need to think carefully about placement and scaling. You might not be able to get away with running
+multiple copies on the same host in the event that you lose a whole node.
+
 ### Amazon ECS and Fargate
 
+Amazon has spent a lot of engineering time building a service
+that treats containers as first-class citizens: the Elastic Container Service (ECS).
+In the last few years they have built upon this support with products like the ECS for
+Kubernetes (EKS) and, more recently, Fargate.
 
+Fargate is simply a marketing label Amazon uses for the new feature
+of ECS that makes it possible for AWS to automatically manage
+all the nodes in your container cluster so that you can focus on
+deploying your service.
+
+To work with the ECS, you need to create a role called ecsInstanceRole that has the
+AmazonEC2ContainerServiceforEC2Role managed role attached to it.
+
+- Create a cluster in the container service:
+```shell
+aws ecs create-cluster --cluster-name fargate-testing
+```
+
+Before AWS Fargate was released, you were required to create AWS EC2 instances
+running docker and the ecs-agent and add them into your cluster. You can still use
+this approach if you want (EC2 launch type), but Fargate makes it much easier to
+run a dynamic cluster that can scale fluidly with your workload.
+
+- Create your first task definition, copy in the following
+JSON, and then save it as `webgame-task.json` in your current directory:
+```json
+{
+"containerDefinitions": [
+{
+"name": "web-game",
+"image": "spkane/quantum-game",
+"cpu": 0,
+"portMappings": [
+{
+"containerPort": 8080,
+"hostPort": 8080,
+"protocol": "tcp"
+}
+],
+"essential": true,
+"environment": [],
+"mountPoints": [],
+"volumesFrom": []
+}
+],
+"family": "fargate-game",
+"networkMode": "awsvpc",
+"volumes": [],
+"placementConstraints": [],
+"requiresCompatibilities": [
+"FARGATE"
+],
+"cpu": "256",
+"memory": "512"
+}
+```
+
+- To upload this task definition to Amazon, you will need to run a similar command:
+```shell
+aws ecs register-task-definition --cli-input-json file://./webgame-task.json
+```
+
+- List all the task definitions:
+```shell
+aws ecs list-task-definitions
+```
+
+- List all the services in the cluster:
+```shell
+aws ecs list-services --cluster fargate-testing
+```
+
+- Retrieve all the details about my service:
+```shell
+aws ecs describe-services --cluster fargate-testing \
+--services fargate-game-service
+```
+
+- List individual tasks running in the cluster:
+```shell
+aws ecs list-tasks --cluster fargate-testing
+```
