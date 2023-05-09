@@ -578,3 +578,91 @@ aws ecs describe-services --cluster fargate-testing \
 ```shell
 aws ecs list-tasks --cluster fargate-testing
 ```
+
+# Chapter 11 - Advanced Topics
+
+At the risk of mixing metaphors, we might make a comparison to a hotel. When running
+Docker, your computer is the hotel. Without Docker, it’s more like a hostel with open
+bunk rooms. In our modern hotel, each container that you launch is an individual
+room with one or more guests (our processes) in it.
+
+Namespaces make up the walls of the room, and ensure that processes cannot interact
+with neighboring processes in any ways that they are not specifically allowed to. Control
+groups are like the floor and ceiling of the room, trying to ensure that the inhabitants
+have the resources they need to enjoy their stay, without allowing them to use
+resources or space reserved for others. Imagine the worst kind of noisy hotel neighbors
+and you can really appreciate good, solid barriers between rooms. Finally, SELinux
+and AppArmor are a bit like hotel security, ensuring that even if something
+unexpected or untoward happens, it is unlikely to cause much more than the headache
+of filling out paperwork and filing an incident report.
+
+### cgroups 
+
+Control groups, or cgroups for short, allow you to set limits on resources for processes
+and their children. This is the mechanism that Docker uses to control limits on memory,
+swap, CPU, and storage and network I/O resources.
+
+Every Docker container is assigned a cgroup that is unique to that container. All of
+the processes in the container will be in the same group. This means that it’s easy to
+control resources for each container as a whole without worrying about what might
+be running.
+
+We can find our container’s cgroup in the /sys filesystem.
+/sys is laid out so that each type of setting is grouped into a module and that
+module is exposed at a different place in the /sys filesystem:
+```shell
+ls /sys/fs/cgroup/cpu/docker/<container-id>
+
+cgroup.clone_children cpu.cfs_period_us cpu.rt_runtime_us notify_on_release
+cgroup.event_control cpu.cfs_quota_us cpu.shares tasks
+cgroup.procs cpu.rt_period_us cpu.stat
+```
+
+Inspect CPU shares for the container:
+```shell
+cat /sys/fs/cgroup/cpu/docker/dcbbaa763daf/cpu.shares
+512
+```
+
+### Namespaces
+
+Inside each container, you see a filesystem, network interfaces, disks, and other
+resources that all appear to be unique to the container despite sharing the kernel with
+all the other processes on the system.
+
+Namespaces take a traditionally global
+resource and present the container with its own unique and unshared version of that
+resource.
+
+Rather than just having a single namespace, however, containers have a namespace
+on each of the six types of resources that are currently namespaced in the kernel:
+mounts, UTS, IPC, PID, network, and user namespaces. Essentially when you talk
+about a container, you’re talking about a number of different namespaces that Docker
+sets up on your behalf.
+
+### Security
+
+Containerized applications are more secure than noncontainerized applications
+because cgroups and standard namespaces provide some important isolation from
+the host’s core resources. But you should not think of containers as a substitute for
+good security practices.
+
+### Docker Daemon
+
+From a security standpoint, the Docker daemon and its components are the only
+completely new risk you are introducing to your infrastructure. Your containerized
+applications are not any less secure and are, at least, a little more secure than they
+would be if deployed outside of containers. But without the containers, you would
+not be running dockerd, the Docker daemon.
+
+You need to set up your own certificate authority in most cases. If
+your organization already has one, then you are in luck. Certificate management
+needs to be implemented carefully in any organization, both to keep certificates
+secure and to distribute them efficiently. So, given that, here are the basic steps:
+1. Set up a method of generating and signing certificates.
+2. Generate certificates for the server and clients.
+3. Configure Docker to require certificates with --tlsverify.
+
+### Advanced configuration
+
+
