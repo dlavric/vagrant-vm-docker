@@ -665,4 +665,62 @@ secure and to distribute them efficiently. So, given that, here are the basic st
 
 ### Advanced configuration
 
+The Structure of Docker
+
+Docker is made of five major server-side components that
+present a common front via the API. These parts are dockerd, containerd, runc,
+docker-containerd-shim, and the docker-proxy.
+Dockerd is responsible for orchestrating the whole set of components that make up
+Docker. But when it starts a container, Docker relies on containerd to handle instantiating
+the container.
+
+Let’s take a look at the components and see what each of them does:
+
+- dockerd
+One per server. Serves the API, builds container images, and does high-level network
+management including volumes, logging, statistics reporting, and more.
+
+- containerd
+One per server. Manages lifecycle, execution, copy-on-write filesystem, and lowlevel
+networking drivers.
+
+- docker-containerd-shim
+One per container. Handles file descriptors passed to the container (e.g., stdin/
+out) and reports exit status.
+
+- runc
+Constructs the container and executes it, gathers statistics, and reports events on
+lifecycle.
+
+# Chapter 12 - Container Platform Design
+
+**The Twelve-Factor App**
+
+Applications built with these 12 steps in mind are ideal candidates
+for the Docker workflow:
+
+1.Codebase
+2.Dependencies
+3.Config
+4.Backing Services
+5.Build,Release,Run
+6.Processes
+7.Port binding
+8.Concurrency
+9.Disposability
+10.Development/Production Parity
+11.Logs
+12.Admin processes
+
+Twelve-Factor Wrap-Up
+
+While “The Twelve-Factor App” wasn’t written as a Docker-specific manifesto, almost
+all of this advice can be applied to writing and deploying applications on a Docker
+platform.
+
+**The Reactive Manifesto**
+
+“The Reactive Manifesto” states that “reactive systems” are responsive, resilient, elastic,
+and message-driven.
+
 
